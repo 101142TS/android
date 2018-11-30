@@ -35,3 +35,6 @@ done
 adb pull $recordfile ./sample/record.txt
 adb pull $codedir ./sample/code
 cat ./sample/record.txt | sort -n  | uniq > ./sample/uniq.txt
+
+
+##############啊啊啊啊啊
