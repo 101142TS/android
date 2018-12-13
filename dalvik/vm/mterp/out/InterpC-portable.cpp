@@ -30,7 +30,63 @@
 
 
 // @101142ts,
+
+void itoa(char *buf, u4 d) {
+    char *p = buf;
+    char *p1, *p2;
+    u4 ud = d;
+    int divisor = 10;
+
+    do {
+        *p++ = (ud % divisor) + '0';
+    }
+    while (ud /= divisor);
+
+    /* Terminate BUF.  */
+    *p = 0;
+  
+    /* Reverse BUF.  */
+    p1 = buf;
+    p2 = p - 1;
+    while (p1 < p2) {
+        char tmp = *p1;
+        *p1 = *p2;
+        *p2 = tmp;
+        p1++;
+        p2--;
+    }
+}
+
 #include <sys/stat.h> 
+void invokeinfo(const Method* curMethod, int flag) {
+    FILE *fp;
+    fp = fopen((char *)gFupk.reserved5, "a");
+
+    switch(flag) {
+        case -1: {
+            fprintf(fp, "########### invoke begin ###########\n");
+            break;
+        }
+        case 0: {
+            fprintf(fp, "INVOKE\n");
+            break;
+        }
+        case 1: {
+            fprintf(fp, "RETURN\n");
+            break;
+        }
+        case 2: {
+            fprintf(fp, "EXCEPTION_THROWN\n");
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+    fprintf(fp, "%s.%s %s\n", curMethod->clazz->descriptor, curMethod->name, curMethod->shorty);
+    fflush(fp);
+    fclose(fp);
+}
 void record(const Method* curMethod) {
     DexCode *code = (DexCode *)((const u1 *)curMethod->insns - 16);
     FILE *fp;
@@ -47,42 +103,44 @@ void record(const Method* curMethod) {
     {
         return;
     }
+    DexStringCache pCache;
+    dexStringCacheInit(&pCache);
+    dexStringCacheAlloc(&pCache, 1010);
+    dexProtoGetMethodDescriptor(&(curMethod->prototype), &pCache);
     ///data/local/tmp/record.txt
     fp = fopen((char *)gFupk.reserved0, "a");
-    ALOGE("%s %s %s %d", curMethod->clazz->descriptor, curMethod->name, curMethod->shorty, code->insnsSize);
-    fprintf(fp, "%s %s %s %d\n", curMethod->clazz->descriptor, curMethod->name, curMethod->shorty, code->insnsSize);
+    ALOGE("%s %s %s %d", curMethod->clazz->descriptor, curMethod->name, pCache.value, code->insnsSize);
+    fprintf(fp, "%s %s %s %d\n", curMethod->clazz->descriptor, curMethod->name, pCache.value, code->insnsSize);
     //Landroid/app/Activity; getMenuInflater L 35
     fflush(fp);
     fclose(fp);
-    
-    // 4: 
-    char dir[510] = "";
-    strcat(dir, (char *)(gFupk.reserved4));                     // /data/data/com.example.dd
-    strcat(dir, "/code/");                                      // /data/data/com.example.dd/code/
-    mkdir(dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+
+    std::string dir = "";
+    dir = dir + std::string((char *)(gFupk.reserved4)) + std::string("/code/");
+    mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
     int ln = strlen(curMethod->clazz->descriptor);
     for (int i = 0; i < ln - 1; i++) {
         if (curMethod->clazz->descriptor[i] == '/') {
-            mkdir(dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+            mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
         }
-        dir[strlen(dir)] = curMethod->clazz->descriptor[i];
+        dir.push_back(curMethod->clazz->descriptor[i]);
     }
-    mkdir(dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    strcat(dir, "/");                                           // /data/data/com.example.dd/code/Landroid/app/Activity/
-    strcat(dir, curMethod->name);                               // /data/data/com.example.dd/code/Landroid/app/Activity/getMenuInflater
-    mkdir(dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    strcat(dir, "/");                                           // /data/data/com.example.dd/code/Landroid/app/Activity/getMenuInflater/
-    strcat(dir, curMethod->shorty);                             // /data/data/com.example.dd/code/Landroid/app/Activity/getMenuInflater/L
-    mkdir(dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    dir = dir + std::string("/") + std::string(curMethod->name);
+    mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
-    char cntfile[510] = "";
-    strcpy(cntfile, dir);
-    strcat(cntfile, "/cntfile.txt");
+    char tmp[1010];
+    u4 hashvalue = dvmComputeUtf8Hash(pCache.value);
+    itoa(tmp, hashvalue);
+    dir = dir + std::string("/") + std::string(tmp);
+    mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+
+    std::string cntfile = dir + std::string("/cntfile.txt");
     int cnt;
-    ALOGE("cntfile %s", cntfile);
-    if (access(cntfile, W_OK) == 0) {
-        fp = fopen(cntfile, "r");
+    ALOGE("cntfile %s", cntfile.c_str());
+    if (access(cntfile.c_str(), W_OK) == 0) {
+        fp = fopen(cntfile.c_str(), "r");
         fscanf(fp, "%d", &cnt);
         fclose(fp);
     }
@@ -91,31 +149,22 @@ void record(const Method* curMethod) {
     
 
     cnt++;
-    fp = fopen(cntfile, "w");
+    fp = fopen(cntfile.c_str(), "w");
     fprintf(fp, "%d", cnt);
     fflush(fp);
     fclose(fp);
 
-    char codefile[510] = "";
-    strcpy(codefile, dir);
-    strcat(codefile, "/");                                    // // /data/data/com.example.dd/code/Landroid/app/Activity/getMenuInflater/L/
-    char num[510] = "";
-    while (cnt) {
-        num[strlen(num)] = '0' + (cnt % 10);
-        cnt /= 10;
-    }
-    for (int i = 0; i < (int)(strlen(num) / 2); i++) {
-        std::swap(num[i], num[strlen(num) - i  - 1]);
-    }
-    strcat(codefile, num);
-
-    fp = fopen(codefile, "w");
-    ALOGE("codefile %s", codefile);
+    itoa(tmp, cnt);
+    std::string codefile = dir + "/" + std::string(tmp);
+    fp = fopen(codefile.c_str(), "w");
+    ALOGE("codefile %s", codefile.c_str());
     fwrite(code->insns, sizeof(u2), code->insnsSize, fp);
-
+    ALOGE("after fwrite");
     fflush(fp);
     fclose(fp);
-
+    ALOGE("before dexStringCacheRelease");
+    dexStringCacheRelease(&pCache);
+    ALOGE("after dexStringCacheRelease");
     return;
 }
 // @101142ts, end
@@ -1238,6 +1287,7 @@ void dvmInterpretPortable(Thread* self)
 
     // @101142ts
     if (self->invokeFlag == 101142) {
+        invokeinfo(curMethod, -1);
         record(curMethod);
     }
     // @101142ts, end
@@ -3660,6 +3710,7 @@ GOTO_TARGET(returnFromMethod)
     {
         // @101142ts
         if (self->invokeFlag == 101142) {
+            invokeinfo(curMethod, 1);
             record(curMethod);
         }
         // @101142ts, end
@@ -3756,6 +3807,7 @@ GOTO_TARGET(exceptionThrown)
         
         // @101142ts
         if (self->invokeFlag == 101142) {
+            invokeinfo(curMethod, 2);
             record(curMethod);
         }
         // @101142ts, end
@@ -3902,6 +3954,7 @@ GOTO_TARGET(invokeMethod, bool methodCallRange, const Method* _methodToCall,
     {
         // @101142ts
         if (self->invokeFlag == 101142) {
+            invokeinfo(curMethod, 0);
             record(curMethod);
         }
         // @101142ts, end

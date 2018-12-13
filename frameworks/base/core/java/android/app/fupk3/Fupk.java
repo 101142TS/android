@@ -27,7 +27,7 @@ public class Fupk {
 
 
     public void unpackAfter(final long millis) {
-        Thread t = new Thread() {
+        Thread t = new Thread("unpacking") {
             @Override
             public void run() {
                 try {

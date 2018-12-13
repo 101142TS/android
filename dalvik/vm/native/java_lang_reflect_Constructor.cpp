@@ -88,7 +88,8 @@ static void Dalvik_java_lang_reflect_Constructor_exconstructNative(
 
     //保存
     //"/data/local/tmp/sche.txt"
-    FILE* fp = fopen((char *)gFupk.reserved1, "w");
+    FILE* fp;
+    fp = fopen((char *)gFupk.reserved1, "w");
     fprintf(fp, "%d %d %d", numDvmDex, numClass, numMethod);
     fflush(fp);
     fclose(fp);
