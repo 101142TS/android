@@ -113,6 +113,11 @@ init_failed:
 }
 
 // @101142ts, 強制觸發，argList是觸發時的參數，必定全爲空
+/*
+    private native Object exinvokeNative(Object obj, Object[] args, Class<?> declaringClass,
+            Class<?>[] parameterTypes, Class<?> returnType, int slot, boolean noAccessCheck,
+            int numDvmDex, int numClass, int numMethod)
+*/
 static void Dalvik_java_lang_reflect_Method_exinvokeNative(const u4* args,
     JValue* pResult)
 {

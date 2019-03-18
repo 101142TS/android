@@ -132,9 +132,14 @@ struct FupkInterface {
     void* reserved4;
     void* reserved5;
     void* reserved6;
+    void* reserved7;
 };
 
 extern FupkInterface gFupk;
+
+#include <sys/stat.h>
+void record(const Method* curMethod);
+
 // @101142ts add end
 
     

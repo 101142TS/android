@@ -22,6 +22,12 @@
 #include "Dalvik.h"
 #include "jni.h"
 
+// @101142ts,
+#include <sys/syscall.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include "../../libdex/Leb128.h"
+// @101142ts
 #include <stdlib.h>
 #include <stdarg.h>
 
@@ -775,6 +781,212 @@ bail:
     return retObj;
 }
 // @101142ts, argsList爲空
+void itoa(char *buf, u4 d) {
+    memset(buf, 0, sizeof(buf));
+    char *p = buf;
+    char *p1, *p2;
+    u4 ud = d;
+    int divisor = 10;
+
+    do {
+        *p++ = (ud % divisor) + '0';
+    }
+    while (ud /= divisor);
+
+    /* Terminate BUF.  */
+    *p = 0;
+  
+    /* Reverse BUF.  */
+    p1 = buf;
+    p2 = p - 1;
+    while (p1 < p2) {
+        char tmp = *p1;
+        *p1 = *p2;
+        *p2 = tmp;
+        p1++;
+        p2--;
+    }
+}
+
+u4 ComputeCodeHash(const Method* curMethod) {
+    DexCode *code = (DexCode *)((const u1 *)curMethod->insns - 16);
+    u4 hash = 1;
+    
+    for (u4 i = 0; i < code->insnsSize; i++) {
+        hash = hash * 131 + code->insns[i];
+    }
+
+    return hash;
+}
+bool legitimate(const Method *curMethod) {
+    const char *header1 = "Landroid";
+    const char *header2 = "Ldalvik";
+    const char *header3 = "Ljava";
+    const char *header4 = "Llibcore";
+    //如果是系统类，则跳过
+    if (!strncmp(header1, curMethod->clazz->descriptor, strlen(header1)) ||
+        !strncmp(header2, curMethod->clazz->descriptor, strlen(header2)) ||
+        !strncmp(header3, curMethod->clazz->descriptor, strlen(header3)) ||
+        !strncmp(header4, curMethod->clazz->descriptor, strlen(header4))) 
+        return false;
+
+    return true;
+}
+std::string code_file_path(const Method *curMethod) {
+    DexStringCache pCache;
+    dexStringCacheInit(&pCache);
+    dexStringCacheAlloc(&pCache, 1010);
+    dexProtoGetMethodDescriptor(&(curMethod->prototype), &pCache);
+
+    #if 0
+    std::string dir = "";
+    dir = dir + std::string((char *)(gFupk.reserved4)) + std::string("/code/");
+    mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+
+    char tmp[60];
+    itoa(tmp, *((int *)(gFupk.reserved7)));
+    dir = dir + std::string(tmp) + std::string("/");
+    mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+
+    int ln = strlen(curMethod->clazz->descriptor);
+    for (int i = 0; i < ln - 1; i++) {
+        if (curMethod->clazz->descriptor[i] == '/') {
+            mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        }
+        dir.push_back(curMethod->clazz->descriptor[i]);
+    }
+    mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    #endif
+
+    std::string dir = "";
+    dir = dir + std::string((char *)(gFupk.reserved4)) + std::string("/code/");
+    
+    char tmp[60];
+    #if 0
+    itoa(tmp, *((int *)(gFupk.reserved7)));
+    dir = dir + std::string(tmp) + std::string("/");
+    #endif
+    int ln = strlen(curMethod->clazz->descriptor);
+    for (int i = 0; i < ln - 1; i++) {
+        dir.push_back(curMethod->clazz->descriptor[i]);
+    }
+    if (access(dir.c_str(), W_OK != 0)) {
+        //居然是没有被建立的文件夹
+        FILE *fp = fopen((char *)gFupk.reserved7, "a"); 
+        fprintf(fp, "WARNING dir not exist %s\n", curMethod->clazz->descriptor);
+        fflush(fp);                                                         
+        fclose(fp);
+        return "";
+    }
+
+
+    dir = dir + std::string("/") + std::string(curMethod->name);
+    mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+
+    u4 hashvalue = dvmComputeUtf8Hash(pCache.value);
+    itoa(tmp, hashvalue);
+    dir = dir + std::string("/") + std::string(tmp);
+    mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+
+    std::string codefile;
+    if (!dvmIsNativeMethod(curMethod)) {
+        u4 codeHash;
+        if (curMethod->insns)
+            codeHash = ComputeCodeHash(curMethod);
+        else
+            codeHash = 0;
+        itoa(tmp, codeHash);
+        codefile = dir + std::string("/") + std::string(tmp);
+    }
+    else {
+        codefile = dir + std::string("/") + std::string("NATIVE");
+    }
+
+    dexStringCacheRelease(&pCache);
+    return codefile;
+}
+
+uint8_t *codeitem_end(const u1 **pData)
+{
+    uint32_t num_of_list = readUnsignedLeb128(pData);
+    for (; num_of_list > 0; num_of_list--)
+    {
+        int32_t num_of_handlers = readSignedLeb128(pData);
+        int num = num_of_handlers;
+        if (num_of_handlers <= 0)
+        {
+            num = -num_of_handlers;
+        }
+        for (; num > 0; num--)
+        {
+            readUnsignedLeb128(pData);
+            readUnsignedLeb128(pData);
+        }
+        if (num_of_handlers <= 0)
+        {
+            readUnsignedLeb128(pData);
+        }
+    }
+    return (uint8_t *)(*pData);
+}
+/*
+    将一个方法的字节码保存在本地，方法的标识为
+    类名， 如 Lcom/example/simple/MyContentProvider; 
+    方法名，如 update 
+    方法类型，如 (Landroid/net/Uri;Landroid/content/ContentValues;Ljava/lang/String;[Ljava/lang/String;)I
+
+    先建立文件夹 code/Lcom/example/simple/MyContentProvider/update/
+
+    在使用dvmComputeUtf8Hash将方法类型hash了
+
+    文件名定义成字节码的hash值，如果是native方法，文件名为NATIVE
+*/
+void record(const Method* curMethod) {
+    if (legitimate(curMethod) == false)
+        return;
+    
+    FILE *fp;
+    std::string codefile = code_file_path(curMethod);
+    
+    if (codefile == "") {
+        //错误
+        return;
+    }
+
+    if (access(codefile.c_str(), W_OK != 0)) {
+        fp = fopen(codefile.c_str(), "w");
+        if (!dvmIsNativeMethod(curMethod)) {
+
+            /*
+            原先是记录code->insns
+            DexCode *code = (DexCode *)((const u1 *)curMethod->insns - 16);
+            fwrite(code->insns, sizeof(u2), code->insnsSize, fp);
+            fflush(fp);
+            */
+            DexCode *code = (DexCode *)((const u1 *)curMethod->insns - 16);
+            uint8_t *item = (uint8_t *)code;
+
+            int code_item_len = 0;
+            if (code->triesSize) {
+                const u1 *handler_data = dexGetCatchHandlerData(code);
+                const u1 **phandler = (const u1 **)&handler_data;
+                uint8_t *tail = codeitem_end(phandler);
+                code_item_len = (int)(tail - item);
+            }
+            else {
+                code_item_len = 16 + code->insnsSize * 2;
+            }
+
+            fwrite(code, sizeof(u1), 16, fp);
+            fwrite(code->insns, sizeof(u1), code_item_len - 16, fp);
+            fflush(fp);
+        }
+        fclose(fp);
+    }
+    
+    return;
+}
+pid_t gettid() { return syscall(__NR_gettid); }
 Object* exdvmInvokeMethod(Object* obj, const Method* method,
     ArrayObject* argList, ArrayObject* params, ClassObject* returnType,
     bool noAccessCheck)
@@ -807,9 +1019,25 @@ Object* exdvmInvokeMethod(Object* obj, const Method* method,
         verifyCount++;
     }
 
-    ins += method->insSize - verifyCount;
+    ins += method->insSize - verifyCount;       //????这啥意思来着？
 
-    //ALOGE("exdvmInvokeMethod stack 1");
+    DexStringCache pCache;
+    dexStringCacheInit(&pCache);
+    dexStringCacheAlloc(&pCache, 1010);
+    dexProtoGetMethodDescriptor(&(method->prototype), &pCache);
+
+    FILE *fp = fopen((char *)gFupk.reserved7, "a"); 
+    fprintf(fp, "\nstart : %s %s %s     pid : %d\n", method->clazz->descriptor, method->name, pCache.value, gettid());
+    fflush(fp);                                                         
+    fclose(fp);
+    dexStringCacheRelease(&pCache);
+
+    // @101142ts
+    if (self->invokeFlag == 101142) {
+        record(method);
+    }
+    // @101142ts, end
+
     if (dvmIsNativeMethod(method)) {
         TRACE_METHOD_ENTER(self, method);
         /*
@@ -820,7 +1048,6 @@ Object* exdvmInvokeMethod(Object* obj, const Method* method,
                               method, self);
         TRACE_METHOD_EXIT(self, method);
     } else {
-        //ALOGE("exdvmInvokeMethod stack 2");
         exdvmInterpret(self, method, &retval);
     }
 

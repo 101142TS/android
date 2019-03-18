@@ -28,146 +28,6 @@
 #include <math.h>                   // needed for fmod, fmodf
 #include "mterp/common/FindInterface.h"
 
-
-// @101142ts,
-
-void itoa(char *buf, u4 d) {
-    char *p = buf;
-    char *p1, *p2;
-    u4 ud = d;
-    int divisor = 10;
-
-    do {
-        *p++ = (ud % divisor) + '0';
-    }
-    while (ud /= divisor);
-
-    /* Terminate BUF.  */
-    *p = 0;
-  
-    /* Reverse BUF.  */
-    p1 = buf;
-    p2 = p - 1;
-    while (p1 < p2) {
-        char tmp = *p1;
-        *p1 = *p2;
-        *p2 = tmp;
-        p1++;
-        p2--;
-    }
-}
-
-#include <sys/stat.h> 
-void invokeinfo(const Method* curMethod, int flag) {
-    FILE *fp;
-    fp = fopen((char *)gFupk.reserved5, "a");
-
-    switch(flag) {
-        case -1: {
-            fprintf(fp, "########### invoke begin ###########\n");
-            break;
-        }
-        case 0: {
-            fprintf(fp, "INVOKE\n");
-            break;
-        }
-        case 1: {
-            fprintf(fp, "RETURN\n");
-            break;
-        }
-        case 2: {
-            fprintf(fp, "EXCEPTION_THROWN\n");
-            break;
-        }
-        default: {
-            break;
-        }
-    }
-    fprintf(fp, "%s.%s %s\n", curMethod->clazz->descriptor, curMethod->name, curMethod->shorty);
-    fflush(fp);
-    fclose(fp);
-}
-void record(const Method* curMethod) {
-    DexCode *code = (DexCode *)((const u1 *)curMethod->insns - 16);
-    FILE *fp;
-
-    const char *header1 = "Landroid";
-    const char *header2 = "Ldalvik";
-    const char *header3 = "Ljava";
-    const char *header4 = "Llibcore";
-    //如果是系统类，或者classDataOff为0，则跳过
-    if (!strncmp(header1, curMethod->clazz->descriptor, strlen(header1)) ||
-        !strncmp(header2, curMethod->clazz->descriptor, strlen(header2)) ||
-        !strncmp(header3, curMethod->clazz->descriptor, strlen(header3)) ||
-        !strncmp(header4, curMethod->clazz->descriptor, strlen(header4))) 
-    {
-        return;
-    }
-    DexStringCache pCache;
-    dexStringCacheInit(&pCache);
-    dexStringCacheAlloc(&pCache, 1010);
-    dexProtoGetMethodDescriptor(&(curMethod->prototype), &pCache);
-    ///data/local/tmp/record.txt
-    fp = fopen((char *)gFupk.reserved0, "a");
-    ALOGE("%s %s %s %d", curMethod->clazz->descriptor, curMethod->name, pCache.value, code->insnsSize);
-    fprintf(fp, "%s %s %s %d\n", curMethod->clazz->descriptor, curMethod->name, pCache.value, code->insnsSize);
-    //Landroid/app/Activity; getMenuInflater L 35
-    fflush(fp);
-    fclose(fp);
-
-    std::string dir = "";
-    dir = dir + std::string((char *)(gFupk.reserved4)) + std::string("/code/");
-    mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-
-    int ln = strlen(curMethod->clazz->descriptor);
-    for (int i = 0; i < ln - 1; i++) {
-        if (curMethod->clazz->descriptor[i] == '/') {
-            mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-        }
-        dir.push_back(curMethod->clazz->descriptor[i]);
-    }
-    mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    dir = dir + std::string("/") + std::string(curMethod->name);
-    mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-
-    char tmp[1010];
-    u4 hashvalue = dvmComputeUtf8Hash(pCache.value);
-    itoa(tmp, hashvalue);
-    dir = dir + std::string("/") + std::string(tmp);
-    mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-
-    std::string cntfile = dir + std::string("/cntfile.txt");
-    int cnt;
-    ALOGE("cntfile %s", cntfile.c_str());
-    if (access(cntfile.c_str(), W_OK) == 0) {
-        fp = fopen(cntfile.c_str(), "r");
-        fscanf(fp, "%d", &cnt);
-        fclose(fp);
-    }
-    else
-        cnt = 0;
-    
-
-    cnt++;
-    fp = fopen(cntfile.c_str(), "w");
-    fprintf(fp, "%d", cnt);
-    fflush(fp);
-    fclose(fp);
-
-    itoa(tmp, cnt);
-    std::string codefile = dir + "/" + std::string(tmp);
-    fp = fopen(codefile.c_str(), "w");
-    ALOGE("codefile %s", codefile.c_str());
-    fwrite(code->insns, sizeof(u2), code->insnsSize, fp);
-    ALOGE("after fwrite");
-    fflush(fp);
-    fclose(fp);
-    ALOGE("before dexStringCacheRelease");
-    dexStringCacheRelease(&pCache);
-    ALOGE("after dexStringCacheRelease");
-    return;
-}
-// @101142ts, end
 /*
  * Configuration defines.  These affect the C implementations, i.e. the
  * portable interpreter(s) and C stubs.
@@ -265,10 +125,39 @@ void record(const Method* curMethod) {
         EXPORT_EXTRA_PC();                                                  \
     } while (false)
 #endif
+// @101142ts, 
+# define ILOGD(...) ((void)0)
+# define ILOGME(...) do {                                                        \
+        char debugStrBuf[128];                                              \
+        snprintf(debugStrBuf, sizeof(debugStrBuf), __VA_ARGS__);            \
+        FILE *fp = fopen((char *)gFupk.reserved7, "a");                     \
+        fprintf(fp, __VA_ARGS__);                                           \
+        fflush(fp);                                                         \
+        fclose(fp);                                                         \
+    } while(false)
+# define ILOGV(...) do {                                                        \
+        if (self->invokeFlag == 101142) {                                       \
+            char debugStrBuf[128];                                              \
+            snprintf(debugStrBuf, sizeof(debugStrBuf), __VA_ARGS__);            \
+            FILE *fp = fopen((char *)gFupk.reserved7, "a");                     \
+            if (curMethod != NULL)                                              \
+                fprintf(fp, "%04x%s\n",                                         \
+                    (int)(pc - curMethod->insns), debugStrBuf);                 \
+            else                                                                \
+                fprintf(fp, "####%s\n",                                         \
+                    debugStrBuf);                                               \
+            fflush(fp);                                                         \
+            fclose(fp);                                                         \
+        }                                                                       \
+    } while(false)
+# define DUMP_REGS(_meth, _frame, _inOnly) ((void)0)
+static const char kSpacing[] = "            ";
+// @101142ts, end
 
 /*
  * If enabled, log instructions as we execute them.
  */
+#if 0
 #ifdef LOG_INSTR
 # define ILOGD(...) ILOG(LOG_DEBUG, __VA_ARGS__)
 # define ILOGV(...) ILOG(LOG_VERBOSE, __VA_ARGS__)
@@ -290,6 +179,8 @@ static const char kSpacing[] = "            ";
 # define ILOGV(...) ((void)0)
 # define DUMP_REGS(_meth, _frame, _inOnly) ((void)0)
 #endif
+#endif 
+
 
 /* get a long from an array of u4 */
 static inline s8 getLongFromArray(const u4* ptr, int idx)
@@ -1284,13 +1175,6 @@ void dvmInterpretPortable(Thread* self)
     retval = self->interpSave.retval;   /* only need for kInterpEntryReturn? */
 
     methodClassDex = curMethod->clazz->pDvmDex;
-
-    // @101142ts
-    if (self->invokeFlag == 101142) {
-        invokeinfo(curMethod, -1);
-        record(curMethod);
-    }
-    // @101142ts, end
 
     LOGVV("threadid=%d: %s.%s pc=%#x fp=%p",
         self->threadId, curMethod->clazz->descriptor, curMethod->name,
@@ -3710,7 +3594,6 @@ GOTO_TARGET(returnFromMethod)
     {
         // @101142ts
         if (self->invokeFlag == 101142) {
-            invokeinfo(curMethod, 1);
             record(curMethod);
         }
         // @101142ts, end
@@ -3785,6 +3668,12 @@ GOTO_TARGET_END
      */
 GOTO_TARGET(exceptionThrown)
     {
+        // @101142ts
+        if (self->invokeFlag == 101142) {
+            record(curMethod);
+        }
+        // @101142ts, end
+
         Object* exception;
         int catchRelPc;
 
@@ -3804,13 +3693,6 @@ GOTO_TARGET(exceptionThrown)
         ALOGV("Handling exception %s at %s:%d",
             exception->clazz->descriptor, curMethod->name,
             dvmLineNumFromPC(curMethod, pc - curMethod->insns));
-        
-        // @101142ts
-        if (self->invokeFlag == 101142) {
-            invokeinfo(curMethod, 2);
-            record(curMethod);
-        }
-        // @101142ts, end
         
         /*
          * Report the exception throw to any "subMode" watchers.
@@ -3952,14 +3834,17 @@ GOTO_TARGET_END
 GOTO_TARGET(invokeMethod, bool methodCallRange, const Method* _methodToCall,
     u2 count, u2 regs)
     {
-        // @101142ts
-        if (self->invokeFlag == 101142) {
-            invokeinfo(curMethod, 0);
-            record(curMethod);
-        }
-        // @101142ts, end
         STUB_HACK(vsrc1 = count; vdst = regs; methodToCall = _methodToCall;);
 
+        // @101142ts
+        /*
+            如果methodToCall已经被调用过一次了，具体表现是已经保存了一次，那么就退出
+        */
+        if (self->invokeFlag == 101142) {
+            record(methodToCall);
+        }
+        // @101142ts, end
+        
         //printf("range=%d call=%p count=%d regs=0x%04x\n",
         //    methodCallRange, methodToCall, count, regs);
         //printf(" --> %s.%s %s\n", methodToCall->clazz->descriptor,

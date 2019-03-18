@@ -71,6 +71,11 @@ static void Dalvik_java_lang_reflect_Constructor_constructNative(
 }
 
 // @101142ts
+/*
+    exconstructNative(Object[] args, Class<T> declaringClass,
+            Class<?>[] parameterTypes, int slot, boolean noAccessCheck, 
+            int numDvmDex, int numClass, int numMethod)
+*/
 static void Dalvik_java_lang_reflect_Constructor_exconstructNative(
     const u4* args, JValue* pResult)
 {

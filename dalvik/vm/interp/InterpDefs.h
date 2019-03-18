@@ -40,10 +40,6 @@
  */
 extern void dvmInterpretPortable(Thread* self);
 
-// @101142ts
-extern void record(const Method* curMethod);
-// @101142ts, end
-
 /*
  * "mterp" interpreter.
  */

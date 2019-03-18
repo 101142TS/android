@@ -2026,8 +2026,6 @@ void exdvmInterpret(Thread* self, const Method* method, JValue* pResult)
     }
 
     typedef void (*Interpreter)(Thread*);
-    //ALOGE("exdvmInterpret stack 2");
-    self->invokeFlag = 101142;
     // Call the interpreter
     (*dvmInterpretPortable)(self);
 
@@ -2041,6 +2039,6 @@ void exdvmInterpret(Thread* self, const Method* method, JValue* pResult)
 }
 
 FupkInterface gFupk = {
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 };
 // @101142ts, end
