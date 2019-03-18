@@ -118,8 +118,13 @@ import libcore.io.IoUtils;
 
 import dalvik.system.CloseGuard;
 
+// @101142ts, 
+
 import android.app.fupk3.UpkConfig;
 import android.app.fupk3.Fupk;
+import android.app.fupk3.Rbd;
+
+// @101142ts, end
 
 final class RemoteServiceException extends AndroidRuntimeException {
     public RemoteServiceException(String msg) {
@@ -137,7 +142,7 @@ final class RemoteServiceException extends AndroidRuntimeException {
  */
 public final class ActivityThread {
     // @101142ts
-    private static int upkFlag = 0;
+    private static int firstFlag = 0;
     // @101142ts, end
     /** @hide */
     public static final String TAG = "ActivityThread";
@@ -4216,16 +4221,26 @@ public final class ActivityThread {
         // @101142ts, now try to load
         
         try {
-            
             UpkConfig config = new UpkConfig();
             if (config.load() && 
                 config.mTargetPackage.equals(data.info.getPackageName()) &&
                 config.mTargetPackage.equals(data.processName)) {
-                if (upkFlag == 0) {
-                    upkFlag = 1;
-                    Log.e("101142ts", "start to unpack");
-                    Fupk upk = new Fupk(config.mTargetPackage);
-                    upk.unpackAfter(20000);
+                if (config.mTargetMode.equals("unpack")) {
+                    if (firstFlag == 0) {
+                        firstFlag = 1;
+    
+                        Log.e("101142ts", "start to unpack");
+                        Fupk upk = new Fupk(config.mTargetPackage);
+                        upk.unpackAfter(config.mWaitingTime);
+                    }
+                }
+                else if (config.mTargetMode.equals("rebuild")) {
+                    Log.e("101142ts", "start to rebuild");
+                    Rbd rdb = new Rbd(config.mTargetPackage, config.mMode);
+                    rdb.rebuildAfter(config.mWaitingTime);
+                }
+                else {
+                    Log.e("101142ts", "Nothing to do");
                 }
             }
         } catch (Throwable t) {

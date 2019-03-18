@@ -11,8 +11,9 @@ import java.io.FileWriter;
 
 public class UpkConfig {
     public String mTargetPackage = "";
-    public String mTargetApplication = "";
-    public String mTargetActivity = "";
+    public String mTargetMode = "";
+    public int mWaitingTime = 1;
+    public int mMode = 1;
 
     public UpkConfig() {
 
@@ -27,8 +28,14 @@ public class UpkConfig {
             FileReader reader = new FileReader(file);
             BufferedReader br = new BufferedReader(reader);
             mTargetPackage = br.readLine();
-            mTargetApplication = br.readLine();
-            mTargetActivity = br.readLine();
+            mTargetMode = br.readLine();
+
+            String tmp = br.readLine();
+            mWaitingTime = Integer.parseInt(tmp);
+
+            tmp = br.readLine();
+            mMode = Integer.parseInt(tmp);
+            
             br.close();
             reader.close();
         } catch (Exception e) {

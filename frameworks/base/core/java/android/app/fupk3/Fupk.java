@@ -10,10 +10,6 @@ import android.app.fupk3.Global;
 
 public class Fupk {
     private String mPackageName;
-    // TODO How can I get the class loader???
-    // maybe I can search from loaded Class, then get
-    // loader from MainActivity
-    public ClassLoader appLoader = null;
 
     static {
 //        System.loadLibrary("Fupk3");
@@ -26,59 +22,20 @@ public class Fupk {
     }
 
 
-    public void unpackAfter(final long millis) {
-        Thread t = new Thread("unpacking") {
+    public void unpackAfter(final int millis) {
+        Thread t = new Thread() {
             @Override
             public void run() {
-                try {
-                    Log.d("101142ts", "unpack after " + millis + " millisec");
-                    Thread.sleep(millis);
-                    unpackNow();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+                unpackNow(millis);
             }
         };
         t.start();
     }
 
-    public void unpackNow() {
-        Log.d("101142ts", "unpack now");
-        unpackAll("/data/data/" + mPackageName);
+    public void unpackNow(int millis) {
+        Log.e("101142ts", "unpack now");
+        unpackAll("/data/data/" + mPackageName, millis);
     }
 
-    private native void unpackAll(String folder);
-
-    // TODO try more loader case
-    public ClassLoader getSystemLoader() {
-        try {
-            Class ActivityThread = FRefInvoke.getClass(null, "android.app.ActivityThread");
-            Object currentActivityThread = FRefInvoke.invokeMethod(
-                    ActivityThread,
-                    "currentActivityThread", new Class[]{},
-                    null, new Object[]{});
-            ArrayMap mPackages = (ArrayMap) FRefInvoke.getFieldOjbect(
-                    ActivityThread, currentActivityThread, "mPackages");
-            WeakReference wr = (WeakReference) mPackages.get(mPackageName);
-
-            Class LoadedApk = FRefInvoke.getClass(null, "android.app.LoadedApk");
-            ClassLoader loader = (ClassLoader) FRefInvoke.getFieldOjbect(
-                    LoadedApk, wr.get(), "mClassLoader");
-            return loader;
-        } catch (Exception e) {
-            e.printStackTrace();
-            Log.e("101142ts", "Unable to find system loader");
-        }
-        return null;
-    }
-
-    // I will load the class from java(the loader may has been replaced)
-    public Class tryLoadClass(String className) {
-        try {
-            return FRefInvoke.getClass(appLoader, className);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
+    private native void unpackAll(String folder, int millis);
 }

@@ -8,14 +8,15 @@ import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
 import java.lang.ClassLoader;
 import java.lang.String;
-import android.app.fupk3.FRefInvoke;
 import android.app.fupk3.Fupk;
 import java.lang.Integer;
 import android.os.Bundle;
 import android.os.Debug;
 
 public class dumpMethod {
-    //代碼寫到本地
+    /*
+        当前所在的DvmDex序号，class序号，Method序号
+    */
     static boolean hookMethod(String tmpName, int numDvmDex, int numClass, int stMethod) {
         //tmpName: Lzzz/abjni/MainActivity;
         String className = tmpName.substring(1, tmpName.length() - 1).replace('/', '.');
@@ -27,7 +28,9 @@ public class dumpMethod {
         Constructor[] constructors;
         try {
             clazz = ClassLoader.exgetClass(className);
-
+            /*
+                clazz的获取方式或许可以修改
+            */
             if (clazz == null)
                 return false;
             obj = clazz.exnewInstance();
@@ -44,6 +47,7 @@ public class dumpMethod {
         }
         
         Log.e("101142ts", "methods&constructors.length = " + (constructors.length + methods.length));
+        
         
         int n = constructors.length + methods.length;
         for (int i = stMethod; i < n; i++) {
@@ -66,6 +70,18 @@ public class dumpMethod {
                 }
             }   
         }
+        
+        /*
+        int n = methods.length;
+        for (int i = stMethod; i < n; i++) {
+            Log.e("101142ts", i + " " + methods[i].toString());
+            try {
+                methods[i].exinvoke(numDvmDex, numClass, i, obj);
+            } catch (Exception e) {
+            } catch (Error er) {
+            }
+        }
+        */
         return true;
     }
 }
