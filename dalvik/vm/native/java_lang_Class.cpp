@@ -564,20 +564,15 @@ static void Dalvik_java_lang_Class_newInstance(const u4* args, JValue* pResult)
 // @101142ts
 static void Dalvik_java_lang_Class_exnewInstance(const u4* args, JValue* pResult)
 {
+    Thread* self = dvmThreadSelf();
+    self->invokeFlag = 101142;  //flag
+    
     ClassObject* clazz = (ClassObject*) args[0];
     Object* newObj;
-
-    /* can't instantiate these */
-    if (dvmIsPrimitiveClass(clazz) || dvmIsInterfaceClass(clazz)
-        || dvmIsArrayClass(clazz) || dvmIsAbstractClass(clazz))
-    {
-        ALOGE("newInstance failed: p%d i%d [%d a%d",
+    ALOGE("newInstance : p%d i%d [%d a%d",
             dvmIsPrimitiveClass(clazz), dvmIsInterfaceClass(clazz),
             dvmIsArrayClass(clazz), dvmIsAbstractClass(clazz));
-        dvmThrowInstantiationException(clazz, NULL);
-        RETURN_VOID();
-    }
-
+            
     /* initialize the class if it hasn't been already */
     if (!dvmIsClassInitialized(clazz)) {
         if (!dvmInitClass(clazz)) {
