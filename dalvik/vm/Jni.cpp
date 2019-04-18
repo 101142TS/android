@@ -1087,7 +1087,65 @@ static inline void convertReferenceResult(JNIEnv* env, JValue* pResult,
         pResult->l = dvmDecodeIndirectRef(self, (jobject) pResult->l);
     }
 }
+// @101142ts,
+struct procmaps {
+    unsigned int l, r;
+    char perms[4];
+    unsigned int offest;
+    char pathname[100];
+};
+void check_native_method_pointer(const Method* method, const u2* insns) {
+    procmaps *st = ((procmaps *)gFupk.reserved5);
+    int lnode = 0, rnode = *((int *)gFupk.reserved6) - 1;
+    int res = -1;
+    while (lnode <= rnode) {
+        int midnode = (lnode + rnode) / 2;
 
+        if (st[midnode].l <= (u4)insns && (u4)insns < st[midnode].r) {
+            res = midnode;
+            break;
+        }
+        if ((u4)insns < st[midnode].l) {
+            rnode = midnode - 1;
+        }
+        else {
+            lnode = midnode + 1;
+        }
+    }
+
+    DexStringCache pCache;
+    dexStringCacheInit(&pCache);
+    dexStringCacheAlloc(&pCache, 1010);
+    dexProtoGetMethodDescriptor(&(method->prototype), &pCache);
+    FILE *fp = fopen((char *)gFupk.reserved0, "a"); 
+    fprintf(fp, "\nstart : %s %s %s\n", method->clazz->descriptor, method->name, pCache.value);
+    fprintf(fp, "native method %x\n", (u4)insns);
+    if (res == -1) {
+        fprintf(fp, "can't find\n");
+    }
+    else {
+        fprintf(fp, "found\n");
+        fprintf(fp, "%x-%x %s %x %s\n", st[res].l, st[res].r, st[res].perms, st[res].offest, st[res].pathname);
+    }
+    fflush(fp);                                                         
+    fclose(fp);
+    dexStringCacheRelease(&pCache);
+} 
+bool systemfunc(const Method* method) {
+    const char *header1 = "Landroid";
+    const char *header2 = "Ldalvik";
+    const char *header3 = "Ljava";
+    const char *header4 = "Llibcore";
+    //如果是系统类，则跳过
+    if (!strncmp(header1, method->clazz->descriptor, strlen(header1)) ||
+        !strncmp(header2, method->clazz->descriptor, strlen(header2)) ||
+        !strncmp(header3, method->clazz->descriptor, strlen(header3)) ||
+        !strncmp(header4, method->clazz->descriptor, strlen(header4))) {
+        return true;
+    }
+    return false;
+}
+// @101142ts, end
 /*
  * General form, handles all cases.
  */
@@ -1153,6 +1211,12 @@ void dvmCallJNIMethod(const u4* args, JValue* pResult, const Method* method, Thr
 
     JNIEnv* env = self->jniEnv;
     COMPUTE_STACK_SUM(self);
+    // @101142ts,
+    if (pResult->i == 101142) {
+        check_native_method_pointer(method, method->insns);
+        pResult->i = -101142;
+    }
+    // @101142ts, end
     dvmPlatformInvoke(env,
             (ClassObject*) staticMethodClass,
             method->jniArgInfo, method->insSize, modArgs, method->shorty,

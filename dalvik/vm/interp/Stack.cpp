@@ -999,7 +999,6 @@ Object* exdvmInvokeMethod(Object* obj, const Method* method,
     int verifyCount;
     JValue retval;
     bool needPop = false;
-    //ALOGE("exdvmInvokeMethod stack 0");
     clazz = callPrep(self, method, obj, false); //改
     if (clazz == NULL)
         return NULL;
@@ -1038,19 +1037,25 @@ Object* exdvmInvokeMethod(Object* obj, const Method* method,
     }
     // @101142ts, end
 
+    /*
+    *   这里如果是native method， 判断指针的范围   
+    */
     if (dvmIsNativeMethod(method)) {
         TRACE_METHOD_ENTER(self, method);
         /*
-         * Because we leave no space for local variables, "curFrame" points
+         * Because we leave no szpace for local variables, "curFrame" points
          * directly at the method arguments.
          */
+        //在retval这里放个101142来标识是特殊的方法
+        retval.i = 101142;
         (*method->nativeFunc)((u4*)self->interpSave.curFrame, &retval,
                               method, self);
+        
         TRACE_METHOD_EXIT(self, method);
     } else {
         exdvmInterpret(self, method, &retval);
     }
-
+    self->invokeFlag = -1;  //flag
     /*
      * Pop the frame immediately.  The "wrap" calls below can cause
      * allocations, and we don't want the GC to walk the now-dead frame.
