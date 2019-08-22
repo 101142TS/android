@@ -954,7 +954,7 @@ void record(const Method* curMethod) {
     }
 
     if (access(codefile.c_str(), W_OK != 0)) {
-        fp = fopen(codefile.c_str(), "w");
+        fp = fopen(codefile.c_str(), "wb");
         if (!dvmIsNativeMethod(curMethod)) {
 
             /*

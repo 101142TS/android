@@ -268,6 +268,7 @@ static bool verifyMethod(Method* meth)
         goto success;
     }
 
+
     /*
      * Sanity-check the register counts.  ins + locals = registers, so make
      * sure that ins <= registers.
@@ -292,6 +293,7 @@ static bool verifyMethod(Method* meth)
      * Compute the width of each instruction and store the result in insnFlags.
      * Count up the #of occurrences of certain opcodes while we're at it.
      */
+
     if (!computeWidthsAndCountOps(&vdata))
         goto bail;
 
@@ -300,6 +302,7 @@ static bool verifyMethod(Method* meth)
      */
     vdata.uninitMap = dvmCreateUninitInstanceMap(meth, vdata.insnFlags,
         vdata.newInstanceCount);
+
     if (vdata.uninitMap == NULL)
         goto bail;
 
@@ -307,6 +310,7 @@ static bool verifyMethod(Method* meth)
      * Set the "in try" flags for all instructions guarded by a "try" block.
      * Also sets the "branch target" flag on exception handlers.
      */
+
     if (!scanTryCatchBlocks(meth, vdata.insnFlags))
         goto bail;
 
@@ -314,6 +318,7 @@ static bool verifyMethod(Method* meth)
      * Perform static instruction verification.  Also sets the "branch
      * target" flags.
      */
+
     if (!verifyInstructions(&vdata))
         goto bail;
 
@@ -323,6 +328,7 @@ static bool verifyMethod(Method* meth)
      * We could probably skip this for a method with no registers, but
      * that's so rare that there's little point in checking.
      */
+
     if (!dvmVerifyCodeFlow(&vdata)) {
         //ALOGD("+++ %s failed code flow", meth->name);
         goto bail;

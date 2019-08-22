@@ -88,6 +88,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 //added start
 import android.os.Debug;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.Reader;
+import java.io.Writer;
 //added end
 
 /**
@@ -886,6 +893,42 @@ public class Activity extends ContextThemeWrapper
      * @see #onPostCreate
      */
     protected void onCreate(Bundle savedInstanceState) {
+        // @101142ts,   
+
+        File file = new File("/data/local/tmp/hookonCreate.txt");
+        if (file.exists()) {
+            String mTargetPackage = "";
+            try {
+                FileReader reader = new FileReader(file);
+                BufferedReader br = new BufferedReader(reader);
+                mTargetPackage = br.readLine();
+                
+                br.close();
+                reader.close();
+
+                if (mTargetPackage.equals(getPackageName())) {
+                    File output = new File("/data/data/" + mTargetPackage +"/result.txt");
+                    FileWriter writer = new FileWriter(output);
+                    BufferedWriter bw = new BufferedWriter(writer);
+
+
+                    RuntimeException re = new RuntimeException("abc");
+                    StackTraceElement[] ste = re.getStackTrace();
+                    for (StackTraceElement element: ste) {
+                        bw.write(element.toString());
+                        bw.newLine();
+                    } 
+
+                    bw.close();
+                    writer.close();
+                }
+            }
+            catch (Exception e) {
+                Log.e(TAG, "101142ts throw exception");
+            }    
+        }
+        
+        // @101142ts, end
         if (DEBUG_LIFECYCLE) Slog.v(TAG, "onCreate " + this + ": " + savedInstanceState);
         if (mLastNonConfigurationInstances != null) {
             mAllLoaderManagers = mLastNonConfigurationInstances.loaders;

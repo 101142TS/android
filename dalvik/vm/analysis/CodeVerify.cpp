@@ -3473,7 +3473,6 @@ bool dvmVerifyCodeFlow(VerifierData* vdata)
             meth->registersSize, insnsSize);
         /* might be bogus data, might be some huge generated method */
     }
-
     /*
      * Create register lists, and initialize them to "Unknown".  If we're
      * also going to create the register map, we need to retain the
@@ -3502,12 +3501,14 @@ bool dvmVerifyCodeFlow(VerifierData* vdata)
         /*
          * Compute basic blocks and predecessor lists.
          */
+
         if (!dvmComputeVfyBasicBlocks(vdata))
             goto bail;
 
         /*
          * Compute liveness.
          */
+
         if (!dvmComputeLiveness(vdata))
             goto bail;
     }
@@ -3699,7 +3700,7 @@ static bool doCodeVerification(VerifierData* vdata, RegisterTable* regTable)
             dumpRegTypes(vdata, &regTable->workLine, insnIdx,
                 NULL, uninitMap, SHOW_REG_DETAILS);
         }
-
+        
         //ALOGI("process %s.%s %s %d",
         //    meth->clazz->descriptor, meth->name, meth->descriptor, insnIdx);
         if (!verifyInstruction(meth, insnFlags, regTable, insnIdx,
