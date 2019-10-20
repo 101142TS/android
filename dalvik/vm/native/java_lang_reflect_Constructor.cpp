@@ -94,11 +94,13 @@ static void Dalvik_java_lang_reflect_Constructor_exconstructNative(
     //保存
     //"/data/local/tmp/sche.txt"
     FILE* fp;
-    fp = fopen((char *)gFupk.reserved1, "w");
-    fprintf(fp, "%d %d %d", numDvmDex, numClass, numMethod);
-    fflush(fp);
-    fclose(fp);
-    
+    if (numDvmDex != -1000 && numClass != -1000 && numMethod != -1000) {
+        fp = fopen((char *)gFupk.reserved1, "w");
+        fprintf(fp, "%d %d %d", numDvmDex, numClass, numMethod);
+        fflush(fp);
+        fclose(fp);
+    }
+
     if (dvmIsAbstractClass(declaringClass)) {
         dvmThrowInstantiationException(declaringClass, NULL);
         RETURN_VOID();
@@ -121,7 +123,20 @@ static void Dalvik_java_lang_reflect_Constructor_exconstructNative(
     meth = dvmSlotToMethod(declaringClass, slot);
     assert(meth != NULL);
 
-    (void) exdvmInvokeMethod(newObj, meth, argList, params, NULL, noAccessCheck);
+    //从hookonCreate处过来
+    if (numDvmDex == -1000 && numClass == -1000 && numMethod == -1000) {
+        const DexCode* pCode = dvmGetMethodCode(meth);
+
+        if (pCode != NULL) {
+            ALOGD("101142ts constructor : %s.%s", meth->clazz->descriptor, meth->name);
+            for (u4 l = 0; l < pCode->insnsSize; l++) {
+                ALOGD("101142ts constructor : %u %02x", l, pCode->insns[l]);
+            }
+        }
+    }
+    else {
+        (void) exdvmInvokeMethod(newObj, meth, argList, params, NULL, noAccessCheck);
+    }
     dvmReleaseTrackedAlloc(newObj, NULL);
     RETURN_PTR(newObj);
 }

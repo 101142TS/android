@@ -95,6 +95,9 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.Reader;
 import java.io.Writer;
+import java.lang.reflect.Constructor;
+import java.lang.ref.WeakReference;
+import java.lang.reflect.Method;
 //added end
 
 /**
@@ -893,9 +896,9 @@ public class Activity extends ContextThemeWrapper
      * @see #onPostCreate
      */
     protected void onCreate(Bundle savedInstanceState) {
-        // @101142ts,   
-
-        File file = new File("/data/local/tmp/hookonCreate.txt");
+        // @101142ts,   打印堆栈
+        File file;
+        file = new File("/data/local/tmp/hookonCreate.txt");
         if (file.exists()) {
             String mTargetPackage = "";
             try {
@@ -907,7 +910,7 @@ public class Activity extends ContextThemeWrapper
                 reader.close();
 
                 if (mTargetPackage.equals(getPackageName())) {
-                    File output = new File("/data/data/" + mTargetPackage +"/result.txt");
+                    File output = new File("/data/data/" + mTargetPackage +"/stack_result.txt");
                     FileWriter writer = new FileWriter(output);
                     BufferedWriter bw = new BufferedWriter(writer);
 
@@ -929,6 +932,91 @@ public class Activity extends ContextThemeWrapper
         }
         
         // @101142ts, end
+
+        // @101142ts,   从Activity处获取classloader，加载其他类
+
+        file = new File("/data/local/tmp/loadClass.txt");
+        if (file.exists()) {
+            String mTargetPackage = "";
+            String mClassName = "";
+            try {
+                FileReader reader = new FileReader(file);
+                BufferedReader br = new BufferedReader(reader);
+                mTargetPackage = br.readLine();
+                mClassName = br.readLine();
+
+                br.close();
+                reader.close();
+
+                if (mTargetPackage.equals(getPackageName())) {
+                    File output = new File("/data/data/" + mTargetPackage +"/loadClass_result.txt");
+                    FileWriter writer = new FileWriter(output);
+                    BufferedWriter bw = new BufferedWriter(writer);
+
+                    Class result = null;
+                    try {
+                        result = this.getClass().getClassLoader().loadClass(mClassName);
+                    } catch (Exception e) {
+                        Log.e(TAG, "101142ts getClass throw exception");
+                    } catch (Error r) {
+                        Log.e(TAG, "101142ts getClass throw error");
+                    }
+                    if (result == null) {
+                        bw.write("NO");
+                        bw.newLine();
+                    }
+                    else {
+
+                        Log.e(TAG, "101142ts get Class success");
+                        Object obj = result.exnewInstance();
+                        Log.e(TAG, "101142ts get obj success");
+                        bw.write("YES");
+                        bw.newLine();
+                        
+
+                        Method[] methods;
+                        methods = result.getDeclaredMethods();
+                        bw.write("methods.length = " + methods.length);
+                        Log.e(TAG, "101142ts methods.length = " + methods.length);
+                        bw.newLine();
+                        for (int i = 0; i < methods.length; i++) {
+                            try {
+                                Log.e(TAG, "101142ts methods :" + i);
+                                methods[i].exinvoke(-1000, -1000, -1000, obj);
+                            } catch (Exception e) {
+                            } catch (Error er) {
+                            }
+                            bw.write(i + " " + methods[i].toString());
+                            bw.newLine();
+                        }
+
+                        Constructor[] constructors;
+                        constructors = result.getDeclaredConstructors();
+                        bw.write("constructors.length = " + constructors.length);
+                        Log.e(TAG, "101142ts constructors.length = " + constructors.length);
+                        bw.newLine();
+                        for (int i = 0; i < constructors.length; i++) {
+                            try {
+                                Log.e(TAG, "101142ts constructors :" + i);
+                                constructors[i].exnewInstance(-1000, -1000, -1000);
+                            } catch (Exception e) {
+                            } catch (Error er) {
+                            }
+                            bw.write(i + " " + constructors[i].toString());
+                            bw.newLine();
+                        }
+                    }
+                    bw.close();
+                    writer.close();
+                }
+            }
+            catch (Exception e) {
+                Log.e(TAG, "101142ts throw exception");
+            }    
+        }
+        
+        // @101142ts, end
+
         if (DEBUG_LIFECYCLE) Slog.v(TAG, "onCreate " + this + ": " + savedInstanceState);
         if (mLastNonConfigurationInstances != null) {
             mAllLoaderManagers = mLastNonConfigurationInstances.loaders;

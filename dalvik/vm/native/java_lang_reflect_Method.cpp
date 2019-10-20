@@ -136,11 +136,13 @@ static void Dalvik_java_lang_reflect_Method_exinvokeNative(const u4* args,
     //保存
     //"/data/local/tmp/sche.txt"
     FILE* fp;
-    fp = fopen((char *)gFupk.reserved1, "w");
-    fprintf(fp, "%d %d %d", numDvmDex, numClass, numMethod);
-    fflush(fp);
-    fclose(fp);
-
+    if (numDvmDex != -1000 && numClass != -1000 && numMethod != -1000) {
+        fp = fopen((char *)gFupk.reserved1, "w");
+        fprintf(fp, "%d %d %d", numDvmDex, numClass, numMethod);
+        fflush(fp);
+        fclose(fp);
+    }
+    
     const Method* meth;
     Object* result;
 
@@ -148,12 +150,9 @@ static void Dalvik_java_lang_reflect_Method_exinvokeNative(const u4* args,
      * "If the underlying method is static, the class that declared the
      * method is initialized if it has not already been initialized."
      */
-    //ALOGE("Dalvik_java_lang_reflect_Method_exinvokeNative stack -2");
     meth = dvmSlotToMethod(declaringClass, slot);
-    //ALOGE("Dalvik_java_lang_reflect_Method_exinvokeNative stack -1");
     assert(meth != NULL);
 
-    //ALOGE("Dalvik_java_lang_reflect_Method_exinvokeNative stack 0");
     if (dvmIsStaticMethod(meth)) {
         if (!dvmIsClassInitialized(declaringClass)) {
             if (!dvmInitClass(declaringClass))
@@ -187,7 +186,23 @@ static void Dalvik_java_lang_reflect_Method_exinvokeNative(const u4* args,
      * a boxed primitive.
      */
     //ALOGE("Dalvik_java_lang_reflect_Method_exinvokeNative stack 1");
-    result = exdvmInvokeMethod(methObj, meth, argList, params, returnType, noAccessCheck);
+
+    //从hookonCreate处过来
+    if (numDvmDex == -1000 && numClass == -1000 && numMethod == -1000) {
+        const DexCode* pCode = dvmGetMethodCode(meth);
+
+        if (pCode != NULL) {
+            ALOGD("101142ts method : %s.%s", meth->clazz->descriptor, meth->name);
+            for (u4 l = 0; l < pCode->insnsSize; l++) {
+                ALOGD("101142ts method : %u %02x", l, pCode->insns[l]);
+            }
+        }
+        goto init_failed;
+    }
+    else {
+        result = exdvmInvokeMethod(methObj, meth, argList, params, returnType, noAccessCheck);
+    }
+    
     RETURN_PTR(result);
 
 init_failed:

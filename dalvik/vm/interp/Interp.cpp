@@ -1875,6 +1875,48 @@ void dvmCheckBefore(const u2 *pc, u4 *fp, Thread* self)
  */
 void dvmInterpret(Thread* self, const Method* method, JValue* pResult)
 {
+
+    // @101142ts
+    
+    /*
+        这里希望在真正执行函数前，能够对希望监控的函数进行监控
+
+        /data/local/tmp/method_monitor.txt
+    */
+
+    {
+        FILE *fp;
+        fp = fopen("/data/local/tmp/method_monitor.txt", "r");
+        if (fp != NULL) {
+            int n = 0;
+            fscanf(fp, "%d", &n);
+            for (int i = 1; i <= n; i++) {
+                char descriptor[210];           //类名
+                char name[110];                 //方法名
+
+                fscanf(fp, "%s %s", descriptor, name);
+
+                if (method->clazz != NULL && method->clazz->descriptor != NULL && strcmp(method->clazz->descriptor, descriptor) == 0 && 
+                    method->name != NULL && strcmp(method->name, name) == 0) {
+                        if (method->insns) {
+                            ALOGD("dvmInterpret: catch %s : %s insns : 0x%08x", method->clazz->descriptor, method->name, (unsigned int)method->insns);
+                            DexCode *code = (DexCode *) ((const u1 *) method->insns - 16);
+                        
+                            //输出前4个
+                            for (u4 j = 0; j < code->insnsSize; j++) {
+                                ALOGD("dvmInterpret: insns[%u] : 0x%04x", j, (unsigned int)method->insns[j]);
+                            }
+                        }
+                        else
+                            ALOGD("dvmInterpret: catch %s : %s insns : 0x0", method->clazz->descriptor, method->name);
+                        
+                    }
+            }
+            fclose(fp);
+        }
+        
+    }
+    // @101142ts, end
     InterpSaveState interpSaveState;
     ExecutionSubModes savedSubModes;
 

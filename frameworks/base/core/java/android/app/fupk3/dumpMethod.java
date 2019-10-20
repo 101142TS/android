@@ -14,20 +14,33 @@ import android.os.Bundle;
 import android.os.Debug;
 
 public class dumpMethod {
+    
+    static Class useClassLoader(String tmpName)  {
+        ClassLoader classLoader = Class.exgetClassLoader();
+        String className = tmpName.substring(1, tmpName.length() - 1).replace('/', '.');
+        
+        Class result = null;
+        try {
+            result = classLoader.loadClass(className);
+        } catch (Exception e) {
+        } catch (Error r) {
+        }
+        return result;
+    }
+    
     /*
         当前所在的DvmDex序号，class序号，Method序号
     */
     static boolean hookMethod(String tmpName, int numDvmDex, int numClass, int stMethod) {
-        //tmpName: Lzzz/abjni/MainActivity;
-        String className = tmpName.substring(1, tmpName.length() - 1).replace('/', '.');
-        Log.e("101142ts", className);
+        Log.e("101142ts", tmpName);
 
         Class clazz;
         Object obj;
         Method[] methods;
         Constructor[] constructors;
         try {
-            clazz = ClassLoader.exgetClass(className);
+            //clazz = ClassLoader.exgetClass(className);        //原
+            clazz = useClassLoader(tmpName);                  //现
             /*
                 clazz的获取方式或许可以修改
             */

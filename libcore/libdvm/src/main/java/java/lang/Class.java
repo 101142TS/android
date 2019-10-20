@@ -421,7 +421,9 @@ public final class Class<T> implements Serializable, AnnotatedElement, GenericDe
      * Returns the defining class loader for the given class.
      */
     private static native ClassLoader getClassLoader(Class<?> c);
-
+    // @101142ts
+    public static native ClassLoader exgetClassLoader();
+    // @101142ts
     /**
      * Returns a {@code Class} object which represents the component type if
      * this class represents an array type. Returns {@code null} if this class

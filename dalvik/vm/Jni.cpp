@@ -1087,7 +1087,7 @@ static inline void convertReferenceResult(JNIEnv* env, JValue* pResult,
         pResult->l = dvmDecodeIndirectRef(self, (jobject) pResult->l);
     }
 }
-// @101142ts,
+// @101142ts
 struct procmaps {
     unsigned int l, r;
     char perms[4];

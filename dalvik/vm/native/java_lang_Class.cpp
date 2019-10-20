@@ -129,6 +129,15 @@ static void Dalvik_java_lang_Class_classForName(const u4* args, JValue* pResult)
     RETURN_PTR(dvmFindClassByName(nameObj, loader, initialize));
 }
 
+// @101142ts
+static void Dalvik_java_lang_Class_exgetClassLoader(const u4* args,
+    JValue* pResult)
+{
+    Object* loader = (Object*)gFupk.reserved2;
+
+    RETURN_PTR(loader);
+}
+// @101142ts
 /*
  * static private ClassLoader getClassLoader(Class clazz)
  *
@@ -841,6 +850,10 @@ const DalvikNativeMethod dvm_java_lang_Class[] = {
         Dalvik_java_lang_Class_classForName },
     { "getClassLoader",         "(Ljava/lang/Class;)Ljava/lang/ClassLoader;",
         Dalvik_java_lang_Class_getClassLoader },
+    // @ 101142ts
+    { "exgetClassLoader",        "()Ljava/lang/ClassLoader;",
+        Dalvik_java_lang_Class_exgetClassLoader },
+    // @ 101142ts
     { "getComponentType",       "()Ljava/lang/Class;",
         Dalvik_java_lang_Class_getComponentType },
     { "getSignatureAnnotation",  "()[Ljava/lang/Object;",
