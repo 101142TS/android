@@ -68,6 +68,7 @@ public class dumpMethod {
                 int x = i;
                 Log.e("101142ts", i + " " + constructors[x].toString());
                 try {
+                    constructors[x].setAccessible(true);
                     constructors[x].exnewInstance(numDvmDex, numClass, i);
                 } catch (Exception e) {
                 } catch (Error er) {
@@ -77,6 +78,7 @@ public class dumpMethod {
                 int x = i - constructors.length;
                 Log.e("101142ts", i + " " + methods[x].toString());
                 try {
+                    methods[x].setAccessible(true);
                     methods[x].exinvoke(numDvmDex, numClass, i, obj);
                 } catch (Exception e) {
                 } catch (Error er) {
