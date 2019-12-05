@@ -521,15 +521,17 @@ public final class Method extends AccessibleObject implements GenericDeclaration
                             InvocationTargetException;
     // @101142ts,
     public Object exinvoke(int numDvmDex, int numClass, int numMethod, Object receiver)
-            throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+            //throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+            throws Exception, Error  {
         return exinvokeNative(receiver, new Object[]{}, declaringClass, parameterTypes, returnType, slot, flag, numDvmDex, numClass, numMethod);
     }
 
     private native Object exinvokeNative(Object obj, Object[] args, Class<?> declaringClass,
             Class<?>[] parameterTypes, Class<?> returnType, int slot, boolean noAccessCheck,
             int numDvmDex, int numClass, int numMethod)
-                    throws IllegalAccessException, IllegalArgumentException,
-                            InvocationTargetException;
+                    // throws IllegalAccessException, IllegalArgumentException,
+                    //         InvocationTargetException;
+                    throws Exception, Error;
     // @101142ts, end
     /**
      * Returns a string containing a concise, human-readable description of this

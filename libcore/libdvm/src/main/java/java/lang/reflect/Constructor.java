@@ -428,15 +428,19 @@ public final class Constructor<T> extends AccessibleObject implements GenericDec
             boolean noAccessCheck) throws InstantiationException, IllegalAccessException,
             InvocationTargetException;
     // @101142ts
-    public T exnewInstance(int numDvmDex, int numClass, int numMethod) throws InstantiationException, IllegalAccessException,
-            IllegalArgumentException, InvocationTargetException {
+    public T exnewInstance(int numDvmDex, int numClass, int numMethod) 
+        // throws InstantiationException, IllegalAccessException,
+        //     IllegalArgumentException, InvocationTargetException {
+            throws Exception, Error {
         return exconstructNative (new Object[]{}, declaringClass, parameterTypes, slot, flag, numDvmDex, numClass, numMethod);
     }
 
     private native T exconstructNative(Object[] args, Class<T> declaringClass,
             Class<?>[] parameterTypes, int slot, boolean noAccessCheck, 
-            int numDvmDex, int numClass, int numMethod) throws InstantiationException, IllegalAccessException,
-            InvocationTargetException;
+            int numDvmDex, int numClass, int numMethod) 
+        // throws InstantiationException, IllegalAccessException,
+        //     InvocationTargetException;
+            throws Exception, Error;
     // @101142ts, end
     /**
      * Returns a string containing a concise, human-readable description of this

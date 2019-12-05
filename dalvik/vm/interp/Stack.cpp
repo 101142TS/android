@@ -1018,7 +1018,10 @@ Object* exdvmInvokeMethod(Object* obj, const Method* method,
         verifyCount++;
     }
 
-    ins += method->insSize - verifyCount;       //????这啥意思来着？
+    for (s4* i = ins; i <= ins + method->insSize - verifyCount - 1; i++)
+        *i = 0;
+    
+    ins += method->insSize - verifyCount;  
 
     DexStringCache pCache;
     dexStringCacheInit(&pCache);
