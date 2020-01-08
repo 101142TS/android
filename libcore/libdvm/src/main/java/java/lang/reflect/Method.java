@@ -531,7 +531,9 @@ public final class Method extends AccessibleObject implements GenericDeclaration
             int numDvmDex, int numClass, int numMethod)
                     // throws IllegalAccessException, IllegalArgumentException,
                     //         InvocationTargetException;
+                    
                     throws Exception, Error;
+                    ;
     // @101142ts, end
     /**
      * Returns a string containing a concise, human-readable description of this

@@ -431,7 +431,7 @@ public final class Constructor<T> extends AccessibleObject implements GenericDec
     public T exnewInstance(int numDvmDex, int numClass, int numMethod) 
         // throws InstantiationException, IllegalAccessException,
         //     IllegalArgumentException, InvocationTargetException {
-            throws Exception, Error {
+           throws Exception, Error {
         return exconstructNative (new Object[]{}, declaringClass, parameterTypes, slot, flag, numDvmDex, numClass, numMethod);
     }
 
@@ -441,6 +441,7 @@ public final class Constructor<T> extends AccessibleObject implements GenericDec
         // throws InstantiationException, IllegalAccessException,
         //     InvocationTargetException;
             throws Exception, Error;
+            ;
     // @101142ts, end
     /**
      * Returns a string containing a concise, human-readable description of this
